@@ -1,18 +1,35 @@
-# React + Vite
+# Quizlot
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Eine einfache Karteikarten-App ohne Anmeldung.
 
-Currently, two official plugins are available:
+Live: https://quizlot.vercel.app/
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Anonyme Speicherung
 
-## React Compiler
+Beim ersten Öffnen erzeugt Quizlot eine zufällige anonyme ID für den Browser. Decks und
+Karteikarten werden ausschließlich unter dieser ID im lokalen Browser-Speicher abgelegt.
+Dadurch können verschiedene Personen die App gleichzeitig verwenden, ohne gegenseitig
+ihre Karten zu sehen oder zu überschreiben.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Die Karten bleiben bei späteren Besuchen im selben Browser erhalten. Sie werden nicht
+zwischen Geräten oder unterschiedlichen Browsern synchronisiert. Beim Löschen der
+Website-Daten gehen die lokal gespeicherten Karten verloren; über den JSON-Export kann
+vorher eine Sicherung erstellt werden.
 
-## Expanding the ESLint configuration
+Bestehende Daten aus der früheren, nicht benutzerspezifischen Speicherung werden beim
+ersten Start automatisch in den anonymen Bereich des aktuellen Browsers übernommen.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Entwicklung
 
-Vercel Link: https://quizlot.vercel.app/
+```bash
+npm ci
+npm run dev
+```
+
+Qualitätsprüfungen:
+
+```bash
+npm test
+npm run lint
+npm run build
+```
