@@ -12,22 +12,17 @@ export default function CardViewer({
                                        onDeleteCard,
                                    }) {
     // Test mode state
-    const [answer, setAnswer] = useState("");
+    const [answerState, setAnswerState] = useState({ cardId: null, value: "" });
     const [score, setScore] = useState({ correct: 0, total: 0 });
     const inputRef = useRef(null);
-
-    // Reset score when switching mode or deck changes (cardsCount changes)
-    useEffect(() => {
-        setAnswer("");
-        setScore({ correct: 0, total: 0 });
-    }, [mode, cardsCount]);
+    const answer = answerState.cardId === card?.id ? answerState.value : "";
 
     // Focus answer input on each new card in test mode
     useEffect(() => {
-        setAnswer("");
-        if (mode === "test") {
-            setTimeout(() => inputRef.current?.focus(), 0);
-        }
+        if (mode !== "test") return undefined;
+
+        const timeout = setTimeout(() => inputRef.current?.focus(), 0);
+        return () => clearTimeout(timeout);
     }, [index, mode]);
 
     function check() {
@@ -77,7 +72,10 @@ export default function CardViewer({
                                 style={{ width: "100%" }}
                                 placeholder="Antwort eingeben und Enter..."
                                 value={answer}
-                                onChange={(e) => setAnswer(e.target.value)}
+                                onChange={(e) => setAnswerState({
+                                    cardId: card.id,
+                                    value: e.target.value,
+                                })}
                                 onKeyDown={(e) => e.key === "Enter" && check()}
                             />
                         </div>

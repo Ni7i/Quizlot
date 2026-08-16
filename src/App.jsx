@@ -220,6 +220,7 @@ export default function App() {
 
                 <section className="panel">
                     <CardViewer
+                        key={`${activeDeckId ?? "none"}|${mode}|${cardOrder.length}`}
                         mode={mode}
                         cardsCount={cardOrder.length}
                         index={index}
