@@ -70,7 +70,11 @@ export default function Sidebar({
                 })}
             </div>
 
-            <div className="hint">Hotkeys: Space/Enter = Flip · ←/→ = Navigation</div>
+            <div className="hint">
+                Deine Karten werden anonym in diesem Browser gespeichert.
+                <br />
+                Hotkeys: Space/Enter = Flip · ←/→ = Navigation
+            </div>
         </aside>
     );
 }

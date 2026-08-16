@@ -5,13 +5,19 @@ import Topbar from "./components/Topbar.jsx";
 import CardViewer from "./components/CardViewer.jsx";
 import AddCards from "./components/AddCards.jsx";
 
-import { loadDecks, saveDecks } from "./lib/storage.js";
+import {
+    getOrCreateOwnerId,
+    listenForDeckChanges,
+    loadDecks,
+    saveDecks,
+} from "./lib/storage.js";
 import { buildCardOrder, clamp, uid } from "./lib/utils.js";
 import { seedDecks } from "./data/seed.js";
 
 export default function App() {
+    const [ownerId] = useState(() => getOrCreateOwnerId());
     const [decks, setDecks] = useState(() => {
-        const loaded = loadDecks();
+        const loaded = loadDecks(ownerId);
         return loaded.length ? loaded : seedDecks();
     });
 
@@ -24,8 +30,14 @@ export default function App() {
     const [index, setIndex] = useState(0);
     const [showBack, setShowBack] = useState(false);
 
-    // Persist
-    useEffect(() => saveDecks(decks), [decks]);
+    // Persist this anonymous browser's decks and keep its other tabs in sync.
+    useEffect(() => saveDecks(ownerId, decks), [decks, ownerId]);
+    useEffect(() => listenForDeckChanges(ownerId, setDecks), [ownerId]);
+
+    useEffect(() => {
+        if (decks.some((deck) => deck.id === activeDeckId)) return;
+        setActiveDeckId(decks[0]?.id ?? null);
+    }, [activeDeckId, decks]);
 
     const activeDeck = useMemo(
         () => decks.find((d) => d.id === activeDeckId) ?? null,
@@ -208,6 +220,7 @@ export default function App() {
 
                 <section className="panel">
                     <CardViewer
+                        key={`${activeDeckId ?? "none"}|${mode}|${cardOrder.length}`}
                         mode={mode}
                         cardsCount={cardOrder.length}
                         index={index}
