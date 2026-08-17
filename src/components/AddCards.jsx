@@ -14,18 +14,37 @@ export default function AddCards({
     const [tags, setTags] = useState("");
     const [bulkText, setBulkText] = useState("");
     const firstInputRef = useRef(null);
+    const dialogRef = useRef(null);
 
     const bulkCards = useMemo(() => parseBulkLines(bulkText), [bulkText]);
 
     useEffect(() => {
         if (!isOpen) return undefined;
 
+        const previouslyFocused = document.activeElement;
         const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
         const focusTimeout = setTimeout(() => firstInputRef.current?.focus(), 0);
 
         function handleEscape(event) {
             if (event.key === "Escape") onClose();
+
+            if (event.key === "Tab") {
+                const focusable = [...(dialogRef.current?.querySelectorAll(
+                    "button:not([disabled]), input:not([disabled]), textarea:not([disabled])",
+                ) ?? [])];
+                if (!focusable.length) return;
+
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
         }
 
         window.addEventListener("keydown", handleEscape);
@@ -33,6 +52,7 @@ export default function AddCards({
             clearTimeout(focusTimeout);
             document.body.style.overflow = previousOverflow;
             window.removeEventListener("keydown", handleEscape);
+            previouslyFocused?.focus?.();
         };
     }, [isOpen, onClose]);
 
@@ -74,6 +94,7 @@ export default function AddCards({
             }}
         >
             <section
+                ref={dialogRef}
                 className="cardComposer"
                 role="dialog"
                 aria-modal="true"

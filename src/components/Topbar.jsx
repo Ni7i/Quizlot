@@ -14,6 +14,7 @@ export function StudyControls({
                 <Search size={17} aria-hidden="true" />
                 <span className="srOnly">Karten durchsuchen</span>
                 <input
+                    id="card-search"
                     type="search"
                     placeholder="Karten durchsuchen"
                     value={query}

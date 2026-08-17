@@ -3,6 +3,7 @@ import { BookOpen, Plus, RotateCcw } from "lucide-react";
 
 import AddCards from "./components/AddCards.jsx";
 import CardViewer from "./components/CardViewer.jsx";
+import ConfirmDialog from "./components/ConfirmDialog.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import Topbar, { StudyControls } from "./components/Topbar.jsx";
 import { seedDecks } from "./data/seed.js";
@@ -47,6 +48,7 @@ export default function App() {
     const [index, setIndex] = useState(0);
     const [showBack, setShowBack] = useState(false);
     const [composerOpen, setComposerOpen] = useState(false);
+    const [deckPendingDelete, setDeckPendingDelete] = useState(null);
     const [undo, setUndo] = useState(null);
     const [notice, setNotice] = useState(null);
 
@@ -159,16 +161,20 @@ export default function App() {
         resetStudy();
     }
 
-    function deleteDeck(deckId) {
+    function requestDeleteDeck(deckId) {
         const deck = decks.find((candidate) => candidate.id === deckId);
         if (!deck) return;
 
-        const confirmed = window.confirm(
-            "Deck „" + deck.name + "“ mit " + deck.cards.length + " Karten löschen?",
-        );
-        if (!confirmed) return;
+        setDeckPendingDelete(deck);
+    }
 
-        setDecks((currentDecks) => currentDecks.filter((candidate) => candidate.id !== deckId));
+    function confirmDeleteDeck() {
+        if (!deckPendingDelete) return;
+
+        setDecks((currentDecks) => currentDecks.filter(
+            (candidate) => candidate.id !== deckPendingDelete.id,
+        ));
+        setDeckPendingDelete(null);
         setNotice({ type: "neutral", message: "Deck gelöscht." });
     }
 
@@ -272,6 +278,12 @@ export default function App() {
 
     useEffect(() => {
         function handleKeyDown(event) {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLocaleLowerCase("de") === "k") {
+                event.preventDefault();
+                document.getElementById("card-search")?.focus();
+                return;
+            }
+
             const tagName = event.target?.tagName?.toUpperCase();
             const isTyping = tagName === "INPUT" || tagName === "TEXTAREA";
             if (isTyping || composerOpen) return;
@@ -299,7 +311,7 @@ export default function App() {
                 decks={decks}
                 totalCards={totalCards}
                 onCreateDeck={createDeck}
-                onDeleteDeck={deleteDeck}
+                onDeleteDeck={requestDeleteDeck}
                 onSelectDeck={selectDeck}
             />
 
@@ -387,6 +399,17 @@ export default function App() {
                 isOpen={composerOpen && Boolean(activeDeck)}
                 onAddCards={addCards}
                 onClose={() => setComposerOpen(false)}
+            />
+
+            <ConfirmDialog
+                isOpen={Boolean(deckPendingDelete)}
+                title="Deck wirklich löschen?"
+                description={deckPendingDelete
+                    ? "„" + deckPendingDelete.name + "“ und alle enthaltenen Karten werden dauerhaft entfernt."
+                    : ""}
+                confirmLabel="Deck löschen"
+                onCancel={() => setDeckPendingDelete(null)}
+                onConfirm={confirmDeleteDeck}
             />
 
             {(undo || notice) && (

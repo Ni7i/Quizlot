@@ -1147,6 +1147,81 @@ textarea:focus-visible {
   line-height: 1.5;
 }
 
+.confirmBackdrop {
+  z-index: 60;
+}
+
+.confirmDialog {
+  width: min(100%, 410px);
+  padding: 28px;
+  text-align: center;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 30px 100px rgba(20, 30, 25, 0.28);
+  animation: composerIn 180ms ease both;
+}
+
+.confirmIcon {
+  width: 45px;
+  height: 45px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 16px;
+  color: var(--terracotta);
+  background: var(--terracotta-soft);
+  border: 1px solid #e6c8c0;
+  border-radius: 12px;
+}
+
+.confirmDialog h2 {
+  margin: 0;
+  font-family: "Newsreader Variable", Georgia, serif;
+  font-size: 28px;
+  font-weight: 550;
+  letter-spacing: -0.025em;
+}
+
+.confirmDialog > p {
+  margin: 10px auto 23px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.confirmActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.confirmActions button {
+  min-height: 41px;
+  padding: 0 14px;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 720;
+  cursor: pointer;
+}
+
+.confirmActions .dangerButton {
+  color: #fff;
+  background: var(--terracotta);
+  border-color: var(--terracotta);
+}
+
+.confirmActions button:hover {
+  border-color: var(--ink);
+}
+
+.confirmActions .dangerButton:hover {
+  background: #873b31;
+  border-color: #873b31;
+}
+
 .toast {
   position: fixed;
   z-index: 70;
