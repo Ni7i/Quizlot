@@ -58,12 +58,11 @@ export default function CardViewer({
         return (
             <div className="emptyState">
                 <div className="emptyIcon"><Layers3 size={26} /></div>
-                <p className="eyebrow">{emptyDeck ? "Bereit für den Anfang" : "Keine Treffer"}</p>
-                <h2>{emptyDeck ? "Die erste Karte gibt deinem Deck Form." : "Nichts Passendes gefunden."}</h2>
+                <h2>{emptyDeck ? "Noch keine Karten" : "Keine Treffer"}</h2>
                 <p>
                     {emptyDeck
-                        ? "Lege Frage und Antwort an – einzeln oder als komplette Liste."
-                        : "Versuche einen anderen Suchbegriff oder zeige wieder alle Karten."}
+                        ? "Füge deine erste Frage und Antwort hinzu."
+                        : "Versuche einen anderen Suchbegriff."}
                 </p>
                 <button
                     className="primaryButton"
@@ -153,10 +152,10 @@ export default function CardViewer({
                             ? <CheckCircle2 size={20} />
                             : <XCircle size={20} />}
                         <div>
-                            <strong>{feedback.isCorrect ? "Genau richtig." : "Fast – schau dir die Antwort an."}</strong>
+                            <strong>{feedback.isCorrect ? "Richtig" : "Nicht ganz"}</strong>
                             <p>
                                 {feedback.isCorrect
-                                    ? "Weiter zur nächsten Karte, wenn du bereit bist."
+                                    ? "Du kannst mit der nächsten Karte weitermachen."
                                     : "Deine Eingabe: " + answer}
                             </p>
                         </div>
@@ -165,7 +164,7 @@ export default function CardViewer({
                     <div className="answerFeedback neutral">
                         <RotateCcw size={20} />
                         <div>
-                            <strong>Selbst aufgedeckt.</strong>
+                            <strong>Antwort angesehen</strong>
                             <p>Diese Karte fließt nicht in deine Wertung ein.</p>
                         </div>
                     </div>

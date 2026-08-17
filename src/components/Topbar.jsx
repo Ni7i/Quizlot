@@ -54,7 +54,6 @@ export default function Topbar({
     return (
         <header className="topbar">
             <div className="deckTitle">
-                <p className="eyebrow">Aktuelles Deck</p>
                 <div className="titleLine">
                     <h1>{deckName}</h1>
                     {hasActiveDeck && <span>{formatCardCount(cardCount)}</span>}

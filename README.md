@@ -1,11 +1,8 @@
 # Quizlot
 
-![Quizlot – Einfach besser lernen](./public/og.png)
-
 Quizlot ist eine fokussierte Karteikarten-App für Menschen, die ohne Einrichtung direkt
 lernen möchten. Sie funktioniert ohne Konto, speichert jedes Deck privat im jeweiligen
-Browser und verbindet eine ruhige Oberfläche mit bewusst kleinen, verlässlichen
-Interaktionen.
+Browser und hält die Bedienung bewusst einfach.
 
 [Live ausprobieren](https://quizlot.vercel.app/) · [Quellcode](https://github.com/Ni7i/Quizlot)
 
@@ -22,11 +19,10 @@ Interaktionen.
 
 ## Produkt- und Designentscheidungen
 
-Die Oberfläche ist bewusst kein klassisches Dashboard. Eine zurückhaltende Papierpalette,
-redaktionelle Typografie und eine einzelne große Lernfläche rücken die aktuelle Karte in
-den Mittelpunkt. Sekundäre Funktionen bleiben erreichbar, konkurrieren aber nicht mit der
-Lernaufgabe. Auf kleinen Bildschirmen wird die Deck-Bibliothek zu einer horizontalen,
-kompakten Navigation.
+Die Oberfläche verwendet eine schlichte Systemschrift, klare Linien und wenige Farben.
+Die aktuelle Karte bleibt im Mittelpunkt, während Sicherung, Suche und Deckverwaltung
+direkt erreichbar sind. Auf kleinen Bildschirmen wird die Deck-Bibliothek zu einer
+horizontalen, kompakten Navigation.
 
 Für die Bedienbarkeit wurden unter anderem sichtbare Fokuszustände, semantische Dialoge,
 Fokusführung, reduzierte Animationen bei entsprechender Systemeinstellung und große
@@ -47,7 +43,7 @@ Quizlot-Versionen werden automatisch migriert.
 
 - React 19 und Vite 7
 - komponentenbasierte Oberfläche ohne UI-Framework
-- Lucide-Icons sowie lokal ausgelieferte variable Schriften
+- Lucide-Icons und native Systemschriften
 - versionierter, benutzerspezifischer Browser-Speicher
 - deterministisches Mischen für stabile Lernsitzungen
 - Node-Test-Runner für Speicher-, Import- und Lernlogik

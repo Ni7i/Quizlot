@@ -380,11 +380,9 @@ export default function App() {
                 ) : (
                     <section className="noDeckState">
                         <div className="emptyIcon"><BookOpen size={28} /></div>
-                        <p className="eyebrow">Deine Bibliothek ist leer</p>
-                        <h2>Lege dein erstes Deck an.</h2>
+                        <h2>Noch keine Decks</h2>
                         <p>
-                            Gib links einen Namen ein. Danach kannst du einzelne Karten
-                            oder gleich eine ganze Liste hinzufügen.
+                            Erstelle links ein Deck und füge danach deine Karten hinzu.
                         </p>
                         <div className="emptyPrompt">
                             <Plus size={18} aria-hidden="true" />
