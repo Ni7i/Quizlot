@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { BookOpen, Plus, RotateCcw } from "lucide-react";
 
-import Sidebar from "./components/Sidebar.jsx";
-import Topbar from "./components/Topbar.jsx";
-import CardViewer from "./components/CardViewer.jsx";
 import AddCards from "./components/AddCards.jsx";
-
+import CardViewer from "./components/CardViewer.jsx";
+import ConfirmDialog from "./components/ConfirmDialog.jsx";
+import Sidebar from "./components/Sidebar.jsx";
+import Topbar, { StudyControls } from "./components/Topbar.jsx";
+import { seedDecks } from "./data/seed.js";
 import {
     getOrCreateOwnerId,
     listenForDeckChanges,
@@ -12,7 +14,26 @@ import {
     saveDecks,
 } from "./lib/storage.js";
 import { buildCardOrder, clamp, uid } from "./lib/utils.js";
-import { seedDecks } from "./data/seed.js";
+
+function cleanImportedDecks(value) {
+    if (!Array.isArray(value)) return [];
+
+    return value
+        .filter((deck) => deck?.id && deck?.name && Array.isArray(deck.cards))
+        .map((deck) => ({
+            id: String(deck.id),
+            name: String(deck.name),
+            cards: deck.cards
+                .filter((card) => card?.id && card?.front && card?.back)
+                .map((card) => ({
+                    id: String(card.id),
+                    front: String(card.front),
+                    back: String(card.back),
+                    tags: Array.isArray(card.tags) ? card.tags.map(String) : [],
+                })),
+        }))
+        .filter((deck) => deck.name.trim());
+}
 
 export default function App() {
     const [ownerId] = useState(() => getOrCreateOwnerId());
@@ -20,17 +41,17 @@ export default function App() {
         const loaded = loadDecks(ownerId);
         return loaded.length ? loaded : seedDecks();
     });
-
     const [activeDeckId, setActiveDeckId] = useState(() => decks[0]?.id ?? null);
-
-    const [mode, setMode] = useState("cards"); // "cards" | "test"
-    const [shuffle, setShuffle] = useState(true);
+    const [mode, setMode] = useState("learn");
+    const [shuffle, setShuffle] = useState(false);
     const [query, setQuery] = useState("");
-
     const [index, setIndex] = useState(0);
     const [showBack, setShowBack] = useState(false);
+    const [composerOpen, setComposerOpen] = useState(false);
+    const [deckPendingDelete, setDeckPendingDelete] = useState(null);
+    const [undo, setUndo] = useState(null);
+    const [notice, setNotice] = useState(null);
 
-    // Persist this anonymous browser's decks and keep its other tabs in sync.
     useEffect(() => saveDecks(ownerId, decks), [decks, ownerId]);
     useEffect(() => listenForDeckChanges(ownerId, setDecks), [ownerId]);
 
@@ -39,204 +60,372 @@ export default function App() {
         setActiveDeckId(decks[0]?.id ?? null);
     }, [activeDeckId, decks]);
 
+    useEffect(() => {
+        if (!undo) return undefined;
+        const timeout = setTimeout(() => setUndo(null), 7000);
+        return () => clearTimeout(timeout);
+    }, [undo]);
+
+    useEffect(() => {
+        if (!notice) return undefined;
+        const timeout = setTimeout(() => setNotice(null), 4500);
+        return () => clearTimeout(timeout);
+    }, [notice]);
+
     const activeDeck = useMemo(
-        () => decks.find((d) => d.id === activeDeckId) ?? null,
-        [decks, activeDeckId]
+        () => decks.find((deck) => deck.id === activeDeckId) ?? null,
+        [activeDeckId, decks],
+    );
+
+    const totalCards = useMemo(
+        () => decks.reduce((sum, deck) => sum + deck.cards.length, 0),
+        [decks],
     );
 
     const filteredCards = useMemo(() => {
         if (!activeDeck) return [];
-        const q = query.trim().toLowerCase();
-        if (!q) return activeDeck.cards;
+        const normalizedQuery = query.trim().toLocaleLowerCase("de");
+        if (!normalizedQuery) return activeDeck.cards;
 
-        return activeDeck.cards.filter((c) => {
-            const f = (c.front ?? "").toLowerCase();
-            const b = (c.back ?? "").toLowerCase();
-            const tags = Array.isArray(c.tags) ? c.tags.join(" ").toLowerCase() : "";
-            return f.includes(q) || b.includes(q) || tags.includes(q);
+        return activeDeck.cards.filter((card) => {
+            const searchable = [
+                card.front,
+                card.back,
+                ...(Array.isArray(card.tags) ? card.tags : []),
+            ]
+                .join(" ")
+                .toLocaleLowerCase("de");
+            return searchable.includes(normalizedQuery);
         });
     }, [activeDeck, query]);
 
-    const cardOrder = useMemo(() => {
-        return buildCardOrder({
+    const cardOrder = useMemo(
+        () => buildCardOrder({
             cards: filteredCards,
             shuffle,
-            seed: `${activeDeckId ?? "none"}|${query}`,
-        });
-    }, [filteredCards, shuffle, activeDeckId, query]);
+            seed: [activeDeckId ?? "none", query].join("|"),
+        }),
+        [activeDeckId, filteredCards, query, shuffle],
+    );
 
     const currentCard = useMemo(() => {
         if (!activeDeck || cardOrder.length === 0) return null;
-        const safeIndex = clamp(index, 0, cardOrder.length - 1);
-        const id = cardOrder[safeIndex];
-        return activeDeck.cards.find((c) => c.id === id) ?? null;
+        const cardId = cardOrder[clamp(index, 0, cardOrder.length - 1)];
+        return activeDeck.cards.find((card) => card.id === cardId) ?? null;
     }, [activeDeck, cardOrder, index]);
 
-    const progress = useMemo(() => {
-        if (!cardOrder.length) return 0;
-        return Math.round(((index + 1) / cardOrder.length) * 100);
-    }, [index, cardOrder.length]);
+    const progress = cardOrder.length
+        ? Math.round(((clamp(index, 0, cardOrder.length - 1) + 1) / cardOrder.length) * 100)
+        : 0;
 
-    // Reset viewer state when deck/query/order/mode changes
-    useEffect(() => {
+    function resetStudy() {
         setIndex(0);
         setShowBack(false);
-    }, [activeDeckId, query, shuffle, mode]);
+    }
+
+    function selectDeck(deckId) {
+        setActiveDeckId(deckId);
+        setQuery("");
+        resetStudy();
+    }
+
+    function changeMode(nextMode) {
+        setMode(nextMode);
+        resetStudy();
+    }
+
+    function changeQuery(nextQuery) {
+        setQuery(nextQuery);
+        resetStudy();
+    }
+
+    function toggleShuffle() {
+        setShuffle((current) => !current);
+        resetStudy();
+    }
 
     function updateActiveDeck(updater) {
-        setDecks((prev) => prev.map((d) => (d.id === activeDeckId ? updater(d) : d)));
+        setDecks((currentDecks) => currentDecks.map(
+            (deck) => (deck.id === activeDeckId ? updater(deck) : deck),
+        ));
     }
 
-    // Deck ops
     function createDeck(name) {
-        const trimmed = name.trim();
-        if (!trimmed) return;
-        const deck = { id: uid(), name: trimmed, cards: [] };
-        setDecks((prev) => [deck, ...prev]);
+        const trimmedName = name.trim();
+        if (!trimmedName) return;
+
+        const deck = { id: uid(), name: trimmedName, cards: [] };
+        setDecks((currentDecks) => [deck, ...currentDecks]);
         setActiveDeckId(deck.id);
+        setQuery("");
+        resetStudy();
     }
 
-    function deleteDeck(id) {
-        setDecks((prev) => prev.filter((d) => d.id !== id));
-        if (activeDeckId === id) {
-            const next = decks.find((d) => d.id !== id)?.id ?? null;
-            setActiveDeckId(next);
-        }
+    function requestDeleteDeck(deckId) {
+        const deck = decks.find((candidate) => candidate.id === deckId);
+        if (!deck) return;
+
+        setDeckPendingDelete(deck);
     }
 
-    // Card ops
+    function confirmDeleteDeck() {
+        if (!deckPendingDelete) return;
+
+        setDecks((currentDecks) => currentDecks.filter(
+            (candidate) => candidate.id !== deckPendingDelete.id,
+        ));
+        setDeckPendingDelete(null);
+        setNotice({ type: "neutral", message: "Deck gelöscht." });
+    }
+
     function addCards(newCards) {
         if (!activeDeckId || newCards.length === 0) return;
-        updateActiveDeck((d) => ({ ...d, cards: [...newCards, ...d.cards] }));
+
+        updateActiveDeck((deck) => ({ ...deck, cards: [...newCards, ...deck.cards] }));
+        setComposerOpen(false);
+        setQuery("");
+        resetStudy();
+        setNotice({
+            type: "success",
+            message: newCards.length === 1
+                ? "Eine neue Karte wurde angelegt."
+                : newCards.length + " neue Karten wurden angelegt.",
+        });
     }
 
     function deleteCard(cardId) {
-        updateActiveDeck((d) => ({ ...d, cards: d.cards.filter((c) => c.id !== cardId) }));
+        if (!activeDeck) return;
+        const position = activeDeck.cards.findIndex((card) => card.id === cardId);
+        if (position < 0) return;
+
+        setUndo({
+            deckId: activeDeck.id,
+            card: activeDeck.cards[position],
+            position,
+        });
+        updateActiveDeck((deck) => ({
+            ...deck,
+            cards: deck.cards.filter((card) => card.id !== cardId),
+        }));
+        setIndex((current) => clamp(current, 0, Math.max(0, cardOrder.length - 2)));
+        setShowBack(false);
     }
 
-    // Export / Import JSON
+    function restoreCard() {
+        if (!undo) return;
+
+        setDecks((currentDecks) => currentDecks.map((deck) => {
+            if (deck.id !== undo.deckId) return deck;
+            const cards = [...deck.cards];
+            cards.splice(Math.min(undo.position, cards.length), 0, undo.card);
+            return { ...deck, cards };
+        }));
+        setUndo(null);
+        setNotice({ type: "success", message: "Karte wiederhergestellt." });
+    }
+
     function exportJSON() {
-        const data = JSON.stringify(decks, null, 2);
-        const blob = new Blob([data], { type: "application/json" });
+        const blob = new Blob([JSON.stringify(decks, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "flashcards_decks.json";
-        a.click();
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "quizlot-decks.json";
+        link.click();
         URL.revokeObjectURL(url);
+        setNotice({ type: "success", message: "Sicherung wurde heruntergeladen." });
     }
 
     function importJSON(file) {
         if (!file) return;
         const reader = new FileReader();
+
         reader.onload = () => {
             try {
-                const parsed = JSON.parse(String(reader.result));
-                if (!Array.isArray(parsed)) return;
+                const importedDecks = cleanImportedDecks(JSON.parse(String(reader.result)));
+                if (!importedDecks.length) throw new Error("empty import");
 
-                const cleaned = parsed
-                    .filter((d) => d && d.id && d.name && Array.isArray(d.cards))
-                    .map((d) => ({
-                        id: String(d.id),
-                        name: String(d.name),
-                        cards: d.cards
-                            .filter((c) => c && c.id && c.front && c.back)
-                            .map((c) => ({
-                                id: String(c.id),
-                                front: String(c.front),
-                                back: String(c.back),
-                                tags: Array.isArray(c.tags) ? c.tags.map(String) : [],
-                            })),
-                    }));
-
-                if (!cleaned.length) return;
-                setDecks(cleaned);
-                setActiveDeckId(cleaned[0].id);
+                setDecks(importedDecks);
+                setActiveDeckId(importedDecks[0].id);
+                setQuery("");
+                resetStudy();
+                setNotice({ type: "success", message: "Sicherung erfolgreich importiert." });
             } catch {
-                // ignore invalid json
+                setNotice({ type: "error", message: "Diese Datei enthält keine gültigen Decks." });
             }
+        };
+
+        reader.onerror = () => {
+            setNotice({ type: "error", message: "Die Datei konnte nicht gelesen werden." });
         };
         reader.readAsText(file);
     }
 
-    // Viewer navigation
     function flip() {
-        setShowBack((s) => !s);
+        if (currentCard) setShowBack((current) => !current);
     }
+
     function next() {
         if (!cardOrder.length) return;
-        setIndex((i) => clamp(i + 1, 0, cardOrder.length - 1));
+        setIndex((current) => clamp(current + 1, 0, cardOrder.length - 1));
         setShowBack(false);
     }
-    function prev() {
+
+    function previous() {
         if (!cardOrder.length) return;
-        setIndex((i) => clamp(i - 1, 0, cardOrder.length - 1));
+        setIndex((current) => clamp(current - 1, 0, cardOrder.length - 1));
         setShowBack(false);
     }
 
-    // Global hotkeys (ignore when typing)
     useEffect(() => {
-        function onKeyDown(e) {
-            const tag = (e.target?.tagName ?? "").toUpperCase();
-            const typing = tag === "INPUT" || tag === "TEXTAREA";
+        function handleKeyDown(event) {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLocaleLowerCase("de") === "k") {
+                event.preventDefault();
+                document.getElementById("card-search")?.focus();
+                return;
+            }
 
-            if (typing) return;
+            const tagName = event.target?.tagName?.toUpperCase();
+            const isTyping = tagName === "INPUT" || tagName === "TEXTAREA";
+            if (isTyping || composerOpen) return;
 
-            if (e.key === " " || e.key === "Enter") {
-                e.preventDefault();
-                flip();
-            } else if (e.key === "ArrowRight") next();
-            else if (e.key === "ArrowLeft") prev();
+            if (event.key === " " || event.key === "Enter") {
+                event.preventDefault();
+                setShowBack((current) => !current);
+            } else if (event.key === "ArrowRight") {
+                setIndex((current) => clamp(current + 1, 0, cardOrder.length - 1));
+                setShowBack(false);
+            } else if (event.key === "ArrowLeft") {
+                setIndex((current) => clamp(current - 1, 0, cardOrder.length - 1));
+                setShowBack(false);
+            }
         }
 
-        window.addEventListener("keydown", onKeyDown);
-        return () => window.removeEventListener("keydown", onKeyDown);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [cardOrder.length]);
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [cardOrder.length, composerOpen]);
 
     return (
-        <div className="app">
+        <div className="appShell">
             <Sidebar
-                decks={decks}
                 activeDeckId={activeDeckId}
-                onSelectDeck={setActiveDeckId}
+                decks={decks}
+                totalCards={totalCards}
                 onCreateDeck={createDeck}
-                onDeleteDeck={deleteDeck}
+                onDeleteDeck={requestDeleteDeck}
+                onSelectDeck={selectDeck}
             />
 
-            <main className="main">
+            <main className="workspace">
                 <Topbar
-                    deckName={activeDeck?.name ?? "Kein Deck"}
-                    mode={mode}
-                    onModeChange={setMode}
-                    shuffle={shuffle}
-                    onShuffleChange={setShuffle}
-                    query={query}
-                    onQueryChange={setQuery}
-                    progress={progress}
+                    cardCount={activeDeck?.cards.length ?? 0}
+                    deckName={activeDeck?.name ?? "Noch kein Deck"}
+                    hasActiveDeck={Boolean(activeDeck)}
                     onExportJSON={exportJSON}
                     onImportJSON={importJSON}
+                    onOpenComposer={() => setComposerOpen(true)}
                 />
 
-                <section className="panel">
-                    <CardViewer
-                        key={`${activeDeckId ?? "none"}|${mode}|${cardOrder.length}`}
-                        mode={mode}
-                        cardsCount={cardOrder.length}
-                        index={index}
-                        card={currentCard}
-                        showBack={showBack}
-                        onFlip={flip}
-                        onNext={next}
-                        onPrev={prev}
-                        onDeleteCard={deleteCard}
-                    />
-                </section>
+                {activeDeck ? (
+                    <section className="studyArea" aria-label={"Deck " + activeDeck.name}>
+                        <div className="studyToolbar">
+                            <div className="modeTabs" role="tablist" aria-label="Lernmodus">
+                                <button
+                                    className={"modeTab" + (mode === "learn" ? " active" : "")}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={mode === "learn"}
+                                    onClick={() => changeMode("learn")}
+                                >
+                                    Lernen
+                                </button>
+                                <button
+                                    className={"modeTab" + (mode === "test" ? " active" : "")}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={mode === "test"}
+                                    onClick={() => changeMode("test")}
+                                >
+                                    Abfragen
+                                </button>
+                            </div>
 
-                <section className="panel">
-                    <AddCards onAddCards={addCards} />
-                </section>
+                            <StudyControls
+                                query={query}
+                                shuffle={shuffle}
+                                onQueryChange={changeQuery}
+                                onShuffleChange={toggleShuffle}
+                            />
+                        </div>
+
+                        <div className="studyProgress" aria-label={"Fortschritt " + progress + " Prozent"}>
+                            <span style={{ width: progress + "%" }} />
+                        </div>
+
+                        <CardViewer
+                            key={[activeDeckId, mode].join("|")}
+                            card={currentCard}
+                            cardsCount={cardOrder.length}
+                            deckCardsCount={activeDeck.cards.length}
+                            index={clamp(index, 0, Math.max(0, cardOrder.length - 1))}
+                            mode={mode}
+                            showBack={showBack}
+                            onAddCard={() => setComposerOpen(true)}
+                            onClearQuery={() => changeQuery("")}
+                            onDeleteCard={deleteCard}
+                            onFlip={flip}
+                            onNext={next}
+                            onPrev={previous}
+                        />
+                    </section>
+                ) : (
+                    <section className="noDeckState">
+                        <div className="emptyIcon"><BookOpen size={28} /></div>
+                        <p className="eyebrow">Deine Bibliothek ist leer</p>
+                        <h2>Lege dein erstes Deck an.</h2>
+                        <p>
+                            Gib links einen Namen ein. Danach kannst du einzelne Karten
+                            oder gleich eine ganze Liste hinzufügen.
+                        </p>
+                        <div className="emptyPrompt">
+                            <Plus size={18} aria-hidden="true" />
+                            Neues Deck in der Seitenleiste erstellen
+                        </div>
+                    </section>
+                )}
             </main>
+
+            <AddCards
+                deckName={activeDeck?.name ?? ""}
+                isOpen={composerOpen && Boolean(activeDeck)}
+                onAddCards={addCards}
+                onClose={() => setComposerOpen(false)}
+            />
+
+            <ConfirmDialog
+                isOpen={Boolean(deckPendingDelete)}
+                title="Deck wirklich löschen?"
+                description={deckPendingDelete
+                    ? "„" + deckPendingDelete.name + "“ und alle enthaltenen Karten werden dauerhaft entfernt."
+                    : ""}
+                confirmLabel="Deck löschen"
+                onCancel={() => setDeckPendingDelete(null)}
+                onConfirm={confirmDeleteDeck}
+            />
+
+            {(undo || notice) && (
+                <div
+                    className={"toast " + (notice?.type ?? "neutral")}
+                    role={notice?.type === "error" ? "alert" : "status"}
+                >
+                    <span>{undo ? "Karte entfernt." : notice?.message}</span>
+                    {undo && (
+                        <button type="button" onClick={restoreCard}>
+                            <RotateCcw size={15} />
+                            Rückgängig
+                        </button>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

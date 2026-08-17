@@ -1,80 +1,94 @@
 import React, { useRef } from "react";
+import { Download, Plus, Search, Shuffle, Upload } from "lucide-react";
+import { formatCardCount } from "../lib/utils.js";
+
+export function StudyControls({
+    query,
+    shuffle,
+    onQueryChange,
+    onShuffleChange,
+}) {
+    return (
+        <div className="studyControls">
+            <label className="searchField">
+                <Search size={17} aria-hidden="true" />
+                <span className="srOnly">Karten durchsuchen</span>
+                <input
+                    id="card-search"
+                    type="search"
+                    placeholder="Karten durchsuchen"
+                    value={query}
+                    onChange={(event) => onQueryChange(event.target.value)}
+                />
+                <kbd>⌘ K</kbd>
+            </label>
+            <button
+                className={"shuffleButton" + (shuffle ? " active" : "")}
+                type="button"
+                aria-pressed={shuffle}
+                onClick={onShuffleChange}
+            >
+                <Shuffle size={17} />
+                <span>Mischen</span>
+            </button>
+        </div>
+    );
+}
 
 export default function Topbar({
-                                   deckName,
-                                   mode,
-                                   onModeChange,
-                                   shuffle,
-                                   onShuffleChange,
-                                   query,
-                                   onQueryChange,
-                                   progress,
-                                   onExportJSON,
-                                   onImportJSON,
-                               }) {
+    deckName,
+    cardCount,
+    hasActiveDeck,
+    onOpenComposer,
+    onExportJSON,
+    onImportJSON,
+}) {
     const fileRef = useRef(null);
 
+    function selectImport(event) {
+        const file = event.target.files?.[0] ?? null;
+        onImportJSON(file);
+        event.target.value = "";
+    }
+
     return (
-        <div className="topbar">
-            <div className="row" style={{ flexWrap: "wrap" }}>
-                <div className="h1">{deckName}</div>
-
-                <div className="pills">
-                    <button
-                        className={`pill ${mode === "cards" ? "active" : ""}`}
-                        onClick={() => onModeChange("cards")}
-                    >
-                        Karten
-                    </button>
-                    <button
-                        className={`pill ${mode === "test" ? "active" : ""}`}
-                        onClick={() => onModeChange("test")}
-                    >
-                        Test
-                    </button>
+        <header className="topbar">
+            <div className="deckTitle">
+                <p className="eyebrow">Aktuelles Deck</p>
+                <div className="titleLine">
+                    <h1>{deckName}</h1>
+                    {hasActiveDeck && <span>{formatCardCount(cardCount)}</span>}
                 </div>
-
-                <label className="toggle">
-                    <input
-                        type="checkbox"
-                        checked={shuffle}
-                        onChange={(e) => onShuffleChange(e.target.checked)}
-                    />
-                    <span>Shuffle</span>
-                </label>
             </div>
 
-            <div className="row" style={{ flexWrap: "wrap" }}>
-                <input
-                    className="input"
-                    style={{ minWidth: 240 }}
-                    placeholder="Suche (front/back/tags)..."
-                    value={query}
-                    onChange={(e) => onQueryChange(e.target.value)}
-                />
-
-                <div className="progressWrap" title={`${progress}%`}>
-                    <div className="progressBar" style={{ width: `${progress}%` }} />
-                </div>
-
-                <div className="row">
-                    <button className="btn secondary" onClick={onExportJSON}>
-                        Export JSON
+            <div className="topActions">
+                <div className="dataActions" aria-label="Datensicherung">
+                    <button type="button" onClick={onExportJSON}>
+                        <Download size={17} />
+                        <span>Sichern</span>
                     </button>
-
-                    <button className="btn secondary" onClick={() => fileRef.current?.click()}>
-                        Import JSON
+                    <button type="button" onClick={() => fileRef.current?.click()}>
+                        <Upload size={17} />
+                        <span>Importieren</span>
                     </button>
-
                     <input
                         ref={fileRef}
+                        className="srOnly"
                         type="file"
-                        accept="application/json"
-                        style={{ display: "none" }}
-                        onChange={(e) => onImportJSON(e.target.files?.[0] ?? null)}
+                        accept="application/json,.json"
+                        onChange={selectImport}
                     />
                 </div>
+                <button
+                    className="primaryButton"
+                    type="button"
+                    disabled={!hasActiveDeck}
+                    onClick={onOpenComposer}
+                >
+                    <Plus size={18} />
+                    Karten hinzufügen
+                </button>
             </div>
-        </div>
+        </header>
     );
 }

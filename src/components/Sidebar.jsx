@@ -1,79 +1,97 @@
 import React, { useState } from "react";
+import { Layers3, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { formatCardCount } from "../lib/utils.js";
 
 export default function Sidebar({
-                                    decks,
-                                    activeDeckId,
-                                    onSelectDeck,
-                                    onCreateDeck,
-                                    onDeleteDeck,
-                                }) {
+    decks,
+    activeDeckId,
+    totalCards,
+    onSelectDeck,
+    onCreateDeck,
+    onDeleteDeck,
+}) {
     const [name, setName] = useState("");
 
-    function add() {
-        const trimmed = name.trim();
-        if (!trimmed) return;
-        onCreateDeck(trimmed);
+    function submit(event) {
+        event.preventDefault();
+        const trimmedName = name.trim();
+        if (!trimmedName) return;
+        onCreateDeck(trimmedName);
         setName("");
     }
 
     return (
         <aside className="sidebar">
-            <div className="brand">Flashcards</div>
+            <a className="brand" href="/" aria-label="Quizlot Startseite">
+                <span className="brandMark" aria-hidden="true">Q</span>
+                <span>
+                    <span className="brandName">Quizlot</span>
+                    <span className="brandTagline">Einfach besser lernen.</span>
+                </span>
+            </a>
 
-            <div className="sectionTitle">Decks</div>
-
-            <div className="row" style={{ marginBottom: 10 }}>
-                <input
-                    className="input"
-                    placeholder="Neues Deck..."
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && add()}
-                />
-                <button className="btn" onClick={add}>+</button>
+            <div className="libraryHeading">
+                <div>
+                    <p className="sidebarLabel">Bibliothek</p>
+                    <h2>Meine Decks</h2>
+                </div>
+                <span className="libraryCount" aria-label={formatCardCount(totalCards)}>
+                    {totalCards}
+                </span>
             </div>
 
-            <div className="deckList">
-                {decks.map((d) => {
-                    const active = d.id === activeDeckId;
-                    return (
-                        <div className="deckItem" key={d.id}>
-                            <button
-                                className={`deckBtn ${active ? "active" : ""}`}
-                                onClick={() => onSelectDeck(d.id)}
-                                title={d.name}
-                            >
-                                <div
-                                    style={{
-                                        fontWeight: 800,
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                        whiteSpace: "nowrap",
-                                    }}
-                                >
-                                    {d.name}
-                                </div>
-                                <div style={{ fontSize: 12, color: "rgba(255,255,255,.65)" }}>
-                                    {d.cards.length} Karten
-                                </div>
-                            </button>
+            <form className="deckCreate" onSubmit={submit}>
+                <label className="srOnly" htmlFor="new-deck-name">Neues Deck</label>
+                <input
+                    id="new-deck-name"
+                    autoComplete="off"
+                    placeholder="Neues Deck"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                />
+                <button type="submit" aria-label="Deck erstellen" disabled={!name.trim()}>
+                    <Plus size={18} strokeWidth={2} />
+                </button>
+            </form>
 
+            <nav className="deckList" aria-label="Kartendecks">
+                {decks.map((deck) => {
+                    const isActive = deck.id === activeDeckId;
+                    return (
+                        <div className={"deckItem" + (isActive ? " active" : "")} key={deck.id}>
                             <button
-                                className="iconBtn"
-                                onClick={() => onDeleteDeck(d.id)}
-                                title="Deck loeschen"
+                                className="deckSelect"
+                                type="button"
+                                aria-current={isActive ? "page" : undefined}
+                                onClick={() => onSelectDeck(deck.id)}
                             >
-                                ✕
+                                <span className="deckIcon" aria-hidden="true">
+                                    <Layers3 size={17} />
+                                </span>
+                                <span className="deckCopy">
+                                    <strong>{deck.name}</strong>
+                                    <small>{formatCardCount(deck.cards.length)}</small>
+                                </span>
+                            </button>
+                            <button
+                                className="deckDelete"
+                                type="button"
+                                aria-label={"Deck " + deck.name + " löschen"}
+                                onClick={() => onDeleteDeck(deck.id)}
+                            >
+                                <Trash2 size={16} />
                             </button>
                         </div>
                     );
                 })}
-            </div>
+            </nav>
 
-            <div className="hint">
-                Deine Karten werden anonym in diesem Browser gespeichert.
-                <br />
-                Hotkeys: Space/Enter = Flip · ←/→ = Navigation
+            <div className="privacyNote">
+                <ShieldCheck size={19} aria-hidden="true" />
+                <div>
+                    <strong>Lokal & privat</strong>
+                    <p>Deine Karten bleiben in diesem Browser – ganz ohne Konto.</p>
+                </div>
             </div>
         </aside>
     );
