@@ -1,7 +1,8 @@
 {
-  "name": "untitled1",
+  "name": "quizlot",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Eine private, zugängliche Karteikarten-App für konzentriertes Lernen.",
   "type": "module",
   "scripts": {
     "dev": "vite",
