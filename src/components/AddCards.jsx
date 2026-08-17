@@ -1,58 +1,189 @@
-import React, { useState } from "react";
-import { parseBulkLines } from "../lib/utils.js";
-import { fetchOpenTDBCards } from "../lib/api.js";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Layers3, LockKeyhole, Plus, X } from "lucide-react";
+import { parseBulkLines, uid } from "../lib/utils.js";
 
-export default function AddCards({ onAddCards }) {
-    const [text, setText] = useState("");
-    const [loadingApi, setLoadingApi] = useState(false);
-    const [apiError, setApiError] = useState("");
+export default function AddCards({
+    isOpen,
+    deckName,
+    onAddCards,
+    onClose,
+}) {
+    const [entryMode, setEntryMode] = useState("single");
+    const [front, setFront] = useState("");
+    const [back, setBack] = useState("");
+    const [tags, setTags] = useState("");
+    const [bulkText, setBulkText] = useState("");
+    const firstInputRef = useRef(null);
 
-    function submit() {
-        const cards = parseBulkLines(text);
-        if (!cards.length) return;
-        onAddCards(cards);
-        setText("");
+    const bulkCards = useMemo(() => parseBulkLines(bulkText), [bulkText]);
+
+    useEffect(() => {
+        if (!isOpen) return undefined;
+
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        const focusTimeout = setTimeout(() => firstInputRef.current?.focus(), 0);
+
+        function handleEscape(event) {
+            if (event.key === "Escape") onClose();
+        }
+
+        window.addEventListener("keydown", handleEscape);
+        return () => {
+            clearTimeout(focusTimeout);
+            document.body.style.overflow = previousOverflow;
+            window.removeEventListener("keydown", handleEscape);
+        };
+    }, [isOpen, onClose]);
+
+    if (!isOpen) return null;
+
+    function submitSingle(event) {
+        event.preventDefault();
+        const cleanFront = front.trim();
+        const cleanBack = back.trim();
+        if (!cleanFront || !cleanBack) return;
+
+        onAddCards([{
+            id: uid(),
+            front: cleanFront,
+            back: cleanBack,
+            tags: tags
+                .split(",")
+                .map((tag) => tag.trim())
+                .filter(Boolean),
+        }]);
+        setFront("");
+        setBack("");
+        setTags("");
     }
 
-    async function addFromApi() {
-        try {
-            setApiError("");
-            setLoadingApi(true);
-            const cards = await fetchOpenTDBCards(10);
-            onAddCards(cards);
-        } catch {
-            setApiError("API konnte nicht geladen werden.");
-        } finally {
-            setLoadingApi(false);
-        }
+    function submitBulk(event) {
+        event.preventDefault();
+        if (!bulkCards.length) return;
+        onAddCards(bulkCards);
+        setBulkText("");
     }
 
     return (
-        <div>
-            <div className="sectionTitle">Woerter hinzufuegen</div>
-            <div className="small">
-                Format pro Zeile: <b>Front;Back</b> (oder <b>|</b> oder Tab). Beispiel:{" "}
-                <code>Hund;كَلْبٌ</code>
-            </div>
+        <div
+            className="modalBackdrop"
+            role="presentation"
+            onMouseDown={(event) => {
+                if (event.target === event.currentTarget) onClose();
+            }}
+        >
+            <section
+                className="cardComposer"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="composer-title"
+            >
+                <header className="composerHeader">
+                    <div className="composerTitle">
+                        <span className="composerIcon" aria-hidden="true"><Layers3 size={20} /></span>
+                        <div>
+                            <p className="eyebrow">Deck · {deckName}</p>
+                            <h2 id="composer-title">Karten hinzufügen</h2>
+                        </div>
+                    </div>
+                    <button className="modalClose" type="button" aria-label="Dialog schließen" onClick={onClose}>
+                        <X size={20} />
+                    </button>
+                </header>
 
-            <textarea
-                className="textarea"
-                placeholder={"Hund;كَلْبٌ\nHaus;بَيْتٌ\nlernen;تَعَلَّمَ"}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-            />
+                <div className="entryTabs" role="tablist" aria-label="Eingabeart">
+                    <button
+                        className={entryMode === "single" ? "active" : ""}
+                        type="button"
+                        role="tab"
+                        aria-selected={entryMode === "single"}
+                        onClick={() => setEntryMode("single")}
+                    >
+                        Einzelne Karte
+                    </button>
+                    <button
+                        className={entryMode === "bulk" ? "active" : ""}
+                        type="button"
+                        role="tab"
+                        aria-selected={entryMode === "bulk"}
+                        onClick={() => setEntryMode("bulk")}
+                    >
+                        Mehrere Karten
+                    </button>
+                </div>
 
-            <div className="actions" style={{ marginTop: 10 }}>
-                <button className="btn" onClick={submit}>
-                    Karten importieren
-                </button>
-
-                <button className="btn secondary" onClick={addFromApi} disabled={loadingApi}>
-                    {loadingApi ? "Laedt Quiz..." : "Quiz aus API laden (10)"}
-                </button>
-
-                {apiError ? <span className="small">{apiError}</span> : null}
-            </div>
+                {entryMode === "single" ? (
+                    <form className="composerForm" onSubmit={submitSingle}>
+                        <label>
+                            <span>Vorderseite</span>
+                            <textarea
+                                ref={firstInputRef}
+                                rows="3"
+                                placeholder="Was möchtest du lernen?"
+                                value={front}
+                                onChange={(event) => setFront(event.target.value)}
+                                required
+                            />
+                        </label>
+                        <label>
+                            <span>Rückseite</span>
+                            <textarea
+                                rows="3"
+                                placeholder="Die passende Antwort"
+                                value={back}
+                                onChange={(event) => setBack(event.target.value)}
+                                required
+                            />
+                        </label>
+                        <label>
+                            <span>Tags <small>optional, mit Komma trennen</small></span>
+                            <input
+                                type="text"
+                                placeholder="Biologie, Prüfung 1"
+                                value={tags}
+                                onChange={(event) => setTags(event.target.value)}
+                            />
+                        </label>
+                        <div className="composerFooter">
+                            <p><LockKeyhole size={15} /> Wird nur in deinem Browser gespeichert.</p>
+                            <button className="primaryButton" type="submit" disabled={!front.trim() || !back.trim()}>
+                                <Plus size={18} />
+                                Karte anlegen
+                            </button>
+                        </div>
+                    </form>
+                ) : (
+                    <form className="composerForm" onSubmit={submitBulk}>
+                        <label>
+                            <span>Kartenliste</span>
+                            <textarea
+                                ref={firstInputRef}
+                                className="bulkTextarea"
+                                rows="10"
+                                placeholder={"Photosynthese;Umwandlung von Lichtenergie\nH₂O;Wasser\nKapital Frankreichs;Paris"}
+                                value={bulkText}
+                                onChange={(event) => setBulkText(event.target.value)}
+                            />
+                        </label>
+                        <div className="bulkHelp">
+                            <strong>Eine Karte pro Zeile</strong>
+                            <p>Trenne Vorder- und Rückseite mit Semikolon, senkrechtem Strich oder Tab.</p>
+                        </div>
+                        <div className="composerFooter">
+                            <p>
+                                {bulkCards.length === 0
+                                    ? "Noch keine vollständige Karte erkannt."
+                                    : bulkCards.length + (bulkCards.length === 1 ? " Karte erkannt." : " Karten erkannt.")}
+                            </p>
+                            <button className="primaryButton" type="submit" disabled={!bulkCards.length}>
+                                <Plus size={18} />
+                                {bulkCards.length === 1 ? "Karte anlegen" : "Karten anlegen"}
+                            </button>
+                        </div>
+                    </form>
+                )}
+            </section>
         </div>
     );
 }

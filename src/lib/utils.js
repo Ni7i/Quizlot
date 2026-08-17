@@ -1,5 +1,18 @@
 export function uid() {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
     return Math.random().toString(16).slice(2) + Date.now().toString(16);
+}
+
+export function formatCardCount(count) {
+    return count === 1 ? "1 Karte" : `${count} Karten`;
+}
+
+export function normalizeAnswer(value) {
+    return String(value ?? "")
+        .normalize("NFKC")
+        .trim()
+        .replace(/\s+/g, " ")
+        .toLocaleLowerCase("de");
 }
 
 export function clamp(n, a, b) {
