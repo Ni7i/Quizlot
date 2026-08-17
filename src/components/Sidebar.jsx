@@ -26,15 +26,11 @@ export default function Sidebar({
                 <span className="brandMark" aria-hidden="true">
                     <img src="/quizlot-logo.png" alt="" />
                 </span>
-                <span>
-                    <span className="brandName">Quizlot</span>
-                    <span className="brandTagline">Einfach besser lernen.</span>
-                </span>
+                <span className="brandName">Quizlot</span>
             </a>
 
             <div className="libraryHeading">
                 <div>
-                    <p className="sidebarLabel">Bibliothek</p>
                     <h2>Meine Decks</h2>
                 </div>
                 <span className="libraryCount" aria-label={formatCardCount(totalCards)}>

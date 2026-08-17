@@ -104,7 +104,7 @@ export default function AddCards({
                     <div className="composerTitle">
                         <span className="composerIcon" aria-hidden="true"><Layers3 size={20} /></span>
                         <div>
-                            <p className="eyebrow">Deck · {deckName}</p>
+                            <p className="dialogContext">{deckName}</p>
                             <h2 id="composer-title">Karten hinzufügen</h2>
                         </div>
                     </div>
