@@ -23,7 +23,9 @@ export default function Sidebar({
     return (
         <aside className="sidebar">
             <a className="brand" href="/" aria-label="Quizlot Startseite">
-                <span className="brandMark" aria-hidden="true">Q</span>
+                <span className="brandMark" aria-hidden="true">
+                    <img src="/quizlot-logo.png" alt="" />
+                </span>
                 <span>
                     <span className="brandName">Quizlot</span>
                     <span className="brandTagline">Einfach besser lernen.</span>
