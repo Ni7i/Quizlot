@@ -41,7 +41,7 @@ Quizlot-Versionen werden automatisch migriert.
 
 ## Technischer Aufbau
 
-- React 19 und Vite 7
+- React 19 und Vite 8
 - komponentenbasierte Oberfläche ohne UI-Framework
 - Lucide-Icons und native Systemschriften
 - versionierter, benutzerspezifischer Browser-Speicher
