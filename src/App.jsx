@@ -41,7 +41,7 @@ export default function App() {
         const loaded = loadDecks(ownerId);
         return loaded.length ? loaded : seedDecks();
     });
-    const [activeDeckId, setActiveDeckId] = useState(() => decks[0]?.id ?? null);
+    const [selectedDeckId, setActiveDeckId] = useState(() => decks[0]?.id ?? null);
     const [mode, setMode] = useState("learn");
     const [shuffle, setShuffle] = useState(false);
     const [query, setQuery] = useState("");
@@ -55,10 +55,10 @@ export default function App() {
     useEffect(() => saveDecks(ownerId, decks), [decks, ownerId]);
     useEffect(() => listenForDeckChanges(ownerId, setDecks), [ownerId]);
 
-    useEffect(() => {
-        if (decks.some((deck) => deck.id === activeDeckId)) return;
-        setActiveDeckId(decks[0]?.id ?? null);
-    }, [activeDeckId, decks]);
+    // Fall back to the first deck when the selected one no longer exists.
+    const activeDeckId = decks.some((deck) => deck.id === selectedDeckId)
+        ? selectedDeckId
+        : (decks[0]?.id ?? null);
 
     useEffect(() => {
         if (!undo) return undefined;
